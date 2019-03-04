@@ -44,11 +44,12 @@ package geparser
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/dgruber/drmaa"
 	"log"
 	"os/exec"
 	"strconv"
 	"time"
+
+	drmaa "github.com/spotinst/spotinst-hpc-gridengine-drmaa"
 )
 
 var cachedJobStatus = map[string]jobStatusCache{}
@@ -275,6 +276,28 @@ type HardElement struct {
 	Consumable int `xml:"CE_consumable"`
 }
 
+// JBSoft is a Grid Engine internal datatype
+// soft resource request list
+type JBSoft struct {
+	// SoftResourceRequest is Grid Engine internal data
+	SoftResourceRequest []SoftElement `xml:"element"`
+}
+
+// SoftElement is a Grid Engine internal datatype
+// one element of a soft request -soft -l
+type SoftElement struct {
+	// Name is Grid Engine internal data
+	Name string `xml:"CE_name"`
+	// ValType is Grid Engine internal data
+	ValType int `xml:"CE_valtype"`
+	// StringVal is Grid Engine internal data
+	StringVal string `xml:"CE_stringval"`
+	// DoubleVal is Grid Engine internal data
+	DoubleVal float64 `xml:"CE_doubleval"`
+	// Consumable is Grid Engine internal data
+	Consumable int `xml:"CE_consumable"`
+}
+
 // RangeElement is a Grid Engine internal datatype
 type RangeElement struct {
 	// RnMin is Grid Engine internal data
@@ -355,6 +378,8 @@ type Element struct {
 	JbHardWallclockGmt int `xml:"JB_hard_wallclock_gmt"`
 	// JbHardResourceRequest is Grid Engine internal data
 	JbHardResourceRequest JBHard `xml:"JB_hard_resource_list"`
+	// JbHardResourceRequest is Grid Engine internal data
+	JbSoftResourceRequest JBSoft `xml:"JB_soft_resource_list"`
 	// JbOverrideTickets is Grid Engine internal data
 	JbOverrideTickets int `xml:"JB_override_tickets"`
 	// JbVersion is Grid Engine internal data
@@ -681,12 +706,26 @@ func GetUsageList(v *InternalJobStatus, task int) (resource []string, value []st
 
 // GetHardRequests pairs of name and value from hard resource requests
 // (-hard -l mem=1G) -> "mem" "1G
-func GetHardRequests(v *InternalJobStatus) (nm []string, val []string) {
+func GetHardRequests(v *InternalJobStatus) map[string]string {
+	requests := make(map[string]string)
+
 	for _, name := range v.Jobinf.Element.JbHardResourceRequest.HardResourceRequest {
-		nm = append(nm, name.Name)
-		val = append(val, name.StringVal)
+		requests[name.Name] = name.StringVal
 	}
-	return nm, val
+
+	return requests
+}
+
+// GetSoftRequests pairs of name and value from soft resource requests
+// (-soft -l mem=1G) -> "mem" "1G
+func GetSoftRequests(v *InternalJobStatus) map[string]string {
+	requests := make(map[string]string)
+
+	for _, name := range v.Jobinf.Element.JbSoftResourceRequest.SoftResourceRequest {
+		requests[name.Name] = name.StringVal
+	}
+
+	return requests
 }
 
 // GetTaskCount returns the amount of tasks found

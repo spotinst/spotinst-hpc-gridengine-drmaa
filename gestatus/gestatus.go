@@ -33,11 +33,12 @@
 package gestatus
 
 import (
-	"github.com/dgruber/drmaa"
-	"github.com/dgruber/drmaa/gestatus/private_gestatus"
 	"strconv"
 	"strings"
 	"time"
+
+	drmaa "github.com/spotinst/spotinst-hpc-gridengine-drmaa"
+	geparser "github.com/spotinst/spotinst-hpc-gridengine-drmaa/gestatus/private_gestatus"
 )
 
 // ClusterJobs contains all jobs found in the cluster.
@@ -294,10 +295,15 @@ func (js *JobStatus) MailAdresses() []string {
 }
 
 // HardRequests returns hard resource requests as name and value
-// pairs. Names are the first slice the values are encoded in the
-// second slice. TODO make a map of it...
-func (js *JobStatus) HardRequests() ([]string, []string) {
+// pairs.
+func (js *JobStatus) HardRequests() map[string]string {
 	return geparser.GetHardRequests(&js.js)
+}
+
+// SoftRequests returns soft resource requests as name and value
+// pairs.
+func (js *JobStatus) SoftRequests() map[string]string {
+	return geparser.GetSoftRequests(&js.js)
 }
 
 func (js *JobStatus) gdilQueueNames(what string, task int) []string {
